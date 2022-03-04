@@ -1,0 +1,112 @@
+---
+title: "Cancer Regression Project"
+author: "Paul Sciarpelletti, Angel, "
+date: "26/02/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+(Guidelines: The purpose of the proposal is to tell me your planned analysis, and we can
+determine if it is appropriate. The proposal will contain:
+– a description of the dataset that you will analyze. If you plan to collect your own data,
+it must be constructed or in construction by proposal submission.)
+
+Source: https://data.world/nrippner/ols-regression-challenge
+
+Our dataset is cancer related data from 2010-2016 based on regions of the United States. The data source is the 2013 us census, government clinical trials and the National Cancer Institute . The cancer related variables we focused on are "avgAnnCount", "avgDeathsPerYear", "incidenceRate" and our created population adjusted variable "adjustedDeathsPerYear". Below is the list of metadata in the dataset with description (a) refers to cancer related (b) refers to unrelated explanatory variables:
+
+TARGET_deathRate: Dependent variable. Mean per capita (100,000) cancer mortalities(a)
+
+avgAnnCount: Mean number of reported cases of cancer diagnosed annually(a)
+
+avgDeathsPerYear: Mean number of reported mortalities due to cancer(a)
+
+incidenceRate: Mean per capita (100,000) cancer diagoses(a)
+
+medianIncome: Median income per county (b)
+
+popEst2015: Population of county (b)
+
+povertyPercent: Percent of populace in poverty (b)
+
+studyPerCap: Per capita number of cancer-related clinical trials per county (a)
+
+binnedInc: Median income per capita binned by decile (b)
+
+MedianAge: Median age of county residents (b)
+
+MedianAgeMale: Median age of male county residents (b)
+
+MedianAgeFemale: Median age of female county residents (b)
+
+Geography: County name (b)
+
+AvgHouseholdSize: Mean household size of county (b)
+
+PercentMarried: Percent of county residents who are married (b)
+
+PctNoHS18_24: Percent of county residents ages 18-24 highest education attained: less than high school (b)
+
+PctHS18_24: Percent of county residents ages 18-24 highest education attained: high school diploma (b)
+
+PctSomeCol18_24: Percent of county residents ages 18-24 highest education attained: some college (b)
+
+PctBachDeg18_24: Percent of county residents ages 18-24 highest education attained: bachelor's degree (b)
+
+PctHS25_Over: Percent of county residents ages 25 and over highest education attained: high school diploma (b)
+
+PctBachDeg25_Over: Percent of county residents ages 25 and over highest education attained: bachelor's degree (b)
+
+PctEmployed16_Over: Percent of county residents ages 16 and over employed (b)
+
+PctUnemployed16_Over: Percent of county residents ages 16 and over unemployed (b)
+
+PctPrivateCoverage: Percent of county residents with private health coverage (b)
+
+PctPrivateCoverageAlone: Percent of county residents with private health coverage alone (no public assistance) (b)
+
+PctEmpPrivCoverage: Percent of county residents with employee-provided private health coverage (b)
+
+PctPublicCoverage: Percent of county residents with government-provided health coverage (b)
+
+PctPubliceCoverageAlone: Percent of county residents with government-provided health coverage alone (b)
+
+PctWhite: Percent of county residents who identify as White (b)
+
+PctBlack: Percent of county residents who identify as Black (b)
+
+PctAsian: Percent of county residents who identify as Asian (b)
+
+PctOtherRace: Percent of county residents who identify in a category which is not White, Black, or Asian (b)
+
+PctMarriedHouseholds: Percent of married households (b)
+
+BirthRate: Number of live births relative to number of women in county (b)
+
+*adjustedDeathsPerYear: number of reported mortalities due to cancer divided by population, so number of cancer deaths per person. (a)
+
+
+
+– what analysis questions you will try to answer, and what regression techniques you will use.
+
+We will try and answer the question of what regressor or combination of regressors best predicts the death rate due to cancer. We will seek to prove linearity through OLS regression and try and minimize our mean squared error. Doing so, we hope to also see insight into some of our (b) variables as stated above that are unrelated to cancer but provide statistical significance in estimating our cancer incident rate and cancer deaths. Such insight will show that route causes and at risk public in hopes to understand how to increase measures of early detection as many doctors have advocated for.
+
+we start our project by viewing the raw data, we see that the data is based on regions with varying populations. Our death due to cancer variable needs to be adjusted in order to run regression with many other population adjusted variables in the form of percentages. So we created adjustedDeathsPerYear as a relative variable which is based on cancer deaths per person. This variable and incidenceRate are the key response variables as we use a pair plot diagram to view early signs of linearity in the data.
+
+```{r}
+df4 <- read.csv("https://query.data.world/s/zraokt6iwclqnrj6qw6t5kspe7r6t7", header=TRUE, stringsAsFactors=FALSE)
+df4$adjustedDeathsPerYear<-NULL
+  df4$adjustedDeathsPerYear<-(df4$avgDeathsPerYear)/(df4$popEst2015)*100000
+```
+
+```{r}
+pairs(df4[,c(4,8,29,30,31,32,35)])
+```
+
+```{r}
+pairs(df4[,c(4,21,24,25,26,27,28,35)])
+```
+
+Besides correlated variables, there are not many clear linear relationships between mentioned response variables. A few we can take note of are PctPublicCoverage which is percent of population that have public coverage (includes people that have both public and private insurance), we also note incidence rate and adjusted deaths which is expected as both (a) are response variables. We need to test more single regresors but so far, we are leaning towards expecting that we must use multiple linear regression in order to accurately express relationships and find linearity.
