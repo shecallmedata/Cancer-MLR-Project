@@ -1,112 +1,74 @@
 ---
 title: "Cancer Regression Project"
-author: "Paul Sciarpelletti, Angel, "
+author: "Paul Sciarpelletti, Angel, Bibiana Cortes"
 date: "26/02/2022"
 output: pdf_document
+   
+ 
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-(Guidelines: The purpose of the proposal is to tell me your planned analysis, and we can
-determine if it is appropriate. The proposal will contain:
-– a description of the dataset that you will analyze. If you plan to collect your own data,
-it must be constructed or in construction by proposal submission.)
+**Description of dataset:** 
 
 Source: https://data.world/nrippner/ols-regression-challenge
 
-Our dataset is cancer related data from 2010-2016 based on regions of the United States. The data source is the 2013 us census, government clinical trials and the National Cancer Institute . The cancer related variables we focused on are "avgAnnCount", "avgDeathsPerYear", "incidenceRate" and our created population adjusted variable "adjustedDeathsPerYear". Below is the list of metadata in the dataset with description (a) refers to cancer related (b) refers to unrelated explanatory variables:
+This dataset contains cancer related data from 2010-2016 based on regions of the United States. The data source is the 2013 US census, government clinical trials and the National Cancer Institute . The cancer related variables we will focused on are "avgAnnCount", "avgDeathsPerYear", "incidenceRate" and the created population adjusted variable "adjustedDeathsPerYear". Below is the list of some variables in the dataset; description (a) refers to cancer related variables, and  description(b) refers to unrelated to cancer explanatory variables:
 
-TARGET_deathRate: Dependent variable. Mean per capita (100,000) cancer mortalities(a)
+- TARGET_deathRate: Response variable. Mean per capita (100,000) cancer mortalities(a)
 
-avgAnnCount: Mean number of reported cases of cancer diagnosed annually(a)
+- avgAnnCount: Mean number of reported cases of cancer diagnosed annually(a)
 
-avgDeathsPerYear: Mean number of reported mortalities due to cancer(a)
+- avgDeathsPerYear: Mean number of reported mortalities due to cancer(a)
 
-incidenceRate: Mean per capita (100,000) cancer diagoses(a)
+- incidenceRate: Mean per capita (100,000) cancer diagnosis(a)
 
-medianIncome: Median income per county (b)
+- medianIncome: Median income per county (b)
 
-popEst2015: Population of county (b)
+- povertyPercent: Percent of populace in poverty (b)
 
-povertyPercent: Percent of populace in poverty (b)
+- studyPerCap: Per capita number of cancer-related clinical trials per county (a)
 
-studyPerCap: Per capita number of cancer-related clinical trials per county (a)
+- MedianAge: Median age of county residents (b)
 
-binnedInc: Median income per capita binned by decile (b)
+- PctBachDeg25_Over: Percent of county residents ages 25 and over highest education attained: bachelor's degree (b)
 
-MedianAge: Median age of county residents (b)
+- PctPrivateCoverage: Percent of county residents with private health coverage (b)
 
-MedianAgeMale: Median age of male county residents (b)
+- PctPrivateCoverageAlone: Percent of county residents with private health coverage alone (no public assistance) (b)
 
-MedianAgeFemale: Median age of female county residents (b)
+- PctPublicCoverage: Percent of county residents with government-provided health coverage (b)
 
-Geography: County name (b)
+- PctPubliceCoverageAlone: Percent of county residents with government-provided health coverage alone (b)
 
-AvgHouseholdSize: Mean household size of county (b)
+- PctWhite: Percent of county residents who identify as White (b)
 
-PercentMarried: Percent of county residents who are married (b)
+- PctBlack: Percent of county residents who identify as Black (b)
 
-PctNoHS18_24: Percent of county residents ages 18-24 highest education attained: less than high school (b)
+- PctAsian: Percent of county residents who identify as Asian (b)
 
-PctHS18_24: Percent of county residents ages 18-24 highest education attained: high school diploma (b)
+- PctOtherRace: Percent of county residents who identify in a category which is not White, Black, or Asian (b)
 
-PctSomeCol18_24: Percent of county residents ages 18-24 highest education attained: some college (b)
+- *adjustedDeathsPerYear: number of reported mortalities due to cancer divided by population, so number of cancer deaths per person. (a)
 
-PctBachDeg18_24: Percent of county residents ages 18-24 highest education attained: bachelor's degree (b)
 
-PctHS25_Over: Percent of county residents ages 25 and over highest education attained: high school diploma (b)
+**Analysis questions**
 
-PctBachDeg25_Over: Percent of county residents ages 25 and over highest education attained: bachelor's degree (b)
+The aim of this project is to answer the question of  what regressor or combination of regressors best predicts the death rate due to cancer.
 
-PctEmployed16_Over: Percent of county residents ages 16 and over employed (b)
+**Regression techniques**
 
-PctUnemployed16_Over: Percent of county residents ages 16 and over unemployed (b)
+We start our project by viewing the raw data. From a first look we see that the data is based on regions with varying populations. We can see that the death due to cancer variable needs to  be adjusted in order to run regression with many other population adjusted variables in the form of percentages. So we created adjustedDeathsPerYear as a relative variable which is based on cancer deaths per person. This variable and incidenceRate are the key response variables. We will use a pair plot diagram to view early signs of linearity in the data.
 
-PctPrivateCoverage: Percent of county residents with private health coverage (b)
+We will fit some simple and multilinear regression models to estimate the best model. Next,  we will asses the accuracy of the coefficient estimates by performing hypothesis testing using the p-value method. Also, for assessing accuracy of the model and comparing models we will use the adjusted R-squared statistics. 
 
-PctPrivateCoverageAlone: Percent of county residents with private health coverage alone (no public assistance) (b)
+Next step will be assessing all assumptions for linear models: linearity between independent and dependent variables, independence of errors, homoskedasticity, normality of errors distribution and no multicollinearity. For this, we will use plots such as scatter plots, residuals versus fitted values, QQ plots, Scale-location plot. Also, we will use Cook-distance plots and residuals versus leverage plot to detect outliers and influential points. For multicollinearity, we will use scatter plots to check correlation between variables, we will check for high standard errors for the regression coefficients and  large changes in coefficients when adding predictors, and also we can use the variance inflation factor VIF.  
 
-PctEmpPrivCoverage: Percent of county residents with employee-provided private health coverage (b)
-
-PctPublicCoverage: Percent of county residents with government-provided health coverage (b)
-
-PctPubliceCoverageAlone: Percent of county residents with government-provided health coverage alone (b)
-
-PctWhite: Percent of county residents who identify as White (b)
-
-PctBlack: Percent of county residents who identify as Black (b)
-
-PctAsian: Percent of county residents who identify as Asian (b)
-
-PctOtherRace: Percent of county residents who identify in a category which is not White, Black, or Asian (b)
-
-PctMarriedHouseholds: Percent of married households (b)
-
-BirthRate: Number of live births relative to number of women in county (b)
-
-*adjustedDeathsPerYear: number of reported mortalities due to cancer divided by population, so number of cancer deaths per person. (a)
+We will seek to prove linearity through OLS regression and  minimize the mean squared error. By doing so, we hope to also see insight into some of the (b) variables that are unrelated to cancer but provide statistical significance in estimating the cancer incident rate and cancer deaths. Such insight will show that route causes and at risk public in hopes to understand how to increase measures of early detection as many doctors have advocated for. 
 
 
 
-– what analysis questions you will try to answer, and what regression techniques you will use.
-
-We will try and answer the question of what regressor or combination of regressors best predicts the death rate due to cancer. We will seek to prove linearity through OLS regression and try and minimize our mean squared error. Doing so, we hope to also see insight into some of our (b) variables as stated above that are unrelated to cancer but provide statistical significance in estimating our cancer incident rate and cancer deaths. Such insight will show that route causes and at risk public in hopes to understand how to increase measures of early detection as many doctors have advocated for.
-
-we start our project by viewing the raw data, we see that the data is based on regions with varying populations. Our death due to cancer variable needs to be adjusted in order to run regression with many other population adjusted variables in the form of percentages. So we created adjustedDeathsPerYear as a relative variable which is based on cancer deaths per person. This variable and incidenceRate are the key response variables as we use a pair plot diagram to view early signs of linearity in the data.
-
-```{r}
-df4 <- read.csv("https://query.data.world/s/zraokt6iwclqnrj6qw6t5kspe7r6t7", header=TRUE, stringsAsFactors=FALSE)
-df4$adjustedDeathsPerYear<-NULL
-  df4$adjustedDeathsPerYear<-(df4$avgDeathsPerYear)/(df4$popEst2015)*100000
-```
-
-```{r}
-pairs(df4[,c(4,8,29,30,31,32,35)])
-```
-
-```{r}
-pairs(df4[,c(4,21,24,25,26,27,28,35)])
-```
-
-Besides correlated variables, there are not many clear linear relationships between mentioned response variables. A few we can take note of are PctPublicCoverage which is percent of population that have public coverage (includes people that have both public and private insurance), we also note incidence rate and adjusted deaths which is expected as both (a) are response variables. We need to test more single regresors but so far, we are leaning towards expecting that we must use multiple linear regression in order to accurately express relationships and find linearity.
+  
+ 
+   
