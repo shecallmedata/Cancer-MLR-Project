@@ -1,6 +1,6 @@
 ---
 title: "Cancer Regression Project"
-author: "Paul Sciarpelletti, Angel, Bibiana Cortes"
+author: "Paul Sciarpelletti, Angel Yu, Bibiana Cortes"
 date: "26/02/2022"
 output: pdf_document
    
