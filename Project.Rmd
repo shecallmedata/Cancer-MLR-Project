@@ -1,0 +1,365 @@
+---
+title: "Project 410 Project"
+author: "Paul Sciarpelletti, Angel Yu, Bibiana Cortes"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyr)
+```
+
+
+
+### 1) Clean data
+#### Preface
+This was our first round of analyzing the data, following the original challenge of having the target variable be deathRate.
+
+```{r}
+cancer = read.csv("https://query.data.world/s/zraokt6iwclqnrj6qw6t5kspe7r6t7", header=TRUE, stringsAsFactors=FALSE)
+#head(cancer)
+summary(cancer)
+
+``` 
+
+From the summary we see that columns PctSomeCol18_24, PctEmployed16_Over, and PctPrivateCoverageAlone have 2285,152 and 609 Na's values respectively. Since Na's cases for columns PctSomeCol18_24 and PctPrivateCoverageAlone represent more than 5%  of the total number of entries in the dataset, we will drop those columns. For column PctEmployed16_Over, we will drop all Na's rows. Also, we will drop the non numerical columns, binnedInc and Geography. 
+
+```{r}
+cancer_clean = cancer[-c(9,13,18,25)]
+#colSums(is.na(cancer))
+cancer_clean2 = na.exclude(cancer_clean)
+cancer_clean_sorted = cancer_clean2[,c(1,2,4:30,3)]
+#head(cancer_clean_sorted)
+```
+
+Fit a full model with cleaned data
+```{r}
+model = lm(TARGET_deathRate~.,data=cancer_clean_sorted)
+summary(model)
+plot(model)
+
+```
+Model with full dataset, has a R-squared of 79.5%.
+
+
+**Multicollinearity**
+
+To visualize multicollinearity we will use vif() function
+
+```{r}
+library(car)
+library(carData)
+
+vif_values =vif(model)
+vif_values
+par(mar = c(5.5, 5.5, 2, 2))
+barplot(vif_values, main = "VIF Values", horiz = TRUE, col = "steelblue", ,cex.axis=0.4, cex.names = 0.4, las=1)  
+abline(v = 10, lwd = 2, lty = 2)
+#we should delete these values
+colnames(cancer_clean_sorted[c(1,2,5,9,10,12,20,22,23,28)])
+```
+
+There are several variables with VIF > 10 which suggests high multicollinearity. 
+
+
+This led us to take a closer look at the data and take a different approach to cleaning the data
+#### a) dropping variables with high correlation
+Re-read the data.
+```{r}
+#o=original
+cancer = read.csv("https://query.data.world/s/zraokt6iwclqnrj6qw6t5kspe7r6t7", header=TRUE, stringsAsFactors=FALSE)
+#summary(cancer)
+```
+
+We will want to get rid of:
+- avgDeathsPerYear because it's too vague of a variable (col 2)
+- binnedInc, geography  because because non numerical (col 9, 13)
+
+We will drop a bunch of columns at once later to keep the code as tidy as possible
+
+Let's look at age
+
+```{r}
+plot(cancer$MedianAge, cancer$MedianAgeFemale)
+```
+Something is wrong with the data- why are there medianAges above 300? Drop these rows. We then look at other NA's.
+```{r}
+ogcancer<-cancer #keep original dataset
+cancer<- cancer[!(cancer$MedianAge>300),] #this is now the dataset we work with
+plot(cancer$MedianAge, cancer$MedianAgeFemale, main="Median Age vs Median Age Female")
+plot(cancer$MedianAge, cancer$MedianAgeMale, main = "Median Age vs Median Age Male")
+```
+
+Both are very correlated so drop both genders because gender doesn't appear in any other variable (col 11, 12)
+
+Next, look at AvgHouseHoldSize, PercentMarried, PctMarriedHouseHolds
+```{r}
+plot(cancer$AvgHouseholdSize,cancer$PercentMarried, main = "Avg Household Size vs % Married")
+
+plot(cancer$AvgHouseholdSize, cancer$PctMarriedHouseholds, main= "Avg Household Size vs % Married Households")
+
+plot(cancer$PercentMarried, cancer$PctMarriedHouseholds, main="% Married vs % Married Households")
+
+plot(cancer$PercentMarried, cancer$BirthRate, main= "% Married vs Birth Rate")
+cor(cancer$PercentMarried, cancer$BirthRate)
+```
+drop % Married households (col 33). There might be a correlation between % Married and Birth Rate but the correlation is low so leave it. 
+
+Check race factors. First normalize the % factors
+```{R}
+cancer$PctRace<-cancer$PctWhite+cancer$PctBlack+cancer$PctAsian+cancer$PctOtherRace
+cancer$PctWhite<-cancer$PctWhite/cancer$PctRace
+cancer$PctBlack<-cancer$PctBlack/cancer$PctRace
+cancer$PctAsian<-cancer$PctAsian/cancer$PctRace
+cancer$PctOtherRace<-cancer$PctOtherRace/cancer$PctRace
+
+plot(cancer$PctWhite, cancer$PctBlack, main= "%White vs %Black")
+cor(cancer$PctWhite, cancer$PctBlack)
+plot(cancer$PctWhite,cancer$PctAsian, main = "%White vs %Asian")
+cor(cancer$PctWhite, cancer$PctAsian)
+plot(cancer$PctBlack, cancer$PctAsian, main= "%Black vs %Asian")
+```
+
+There is definitely a correlation between Black and White. We will drop all other variables regarding races and keep just PctWhite and assume that people can only identify as one race and that the variables are mutually exclusive. (30, 31, 32)
+
+Let's look at insurance coverage, these are not mutually exclusive. Also note there are Na's in the PctPrivateCoverageAlone.
+```{r}
+insurance<-cancer[c(24,26,27,28)]
+cor(insurance) #look at correlation values
+plot(cancer$PctEmpPrivCoverage,cancer$PctPublicCoverageAlone)
+```
+So there's a correlation between the alones and the general coverages (which isnt mutually exclusive). We have to drop private coverage alone because more than 5% NA's. Based on correlation matrix of the insurance variables, we see fairly high correlation throughout, when we ran a model with all insurance variables in, PctEmpPrivCoverage was most significant, so we will compare correlation with PctEmpPrivCoverage and others. We see that PctPublicCoverageAlone and PctEmpPrivCoverage have a correlation of around -.729 which is high but we choose to allow this to go through to next phase (VIF).
+
+so we will drop c(24,25,27)
+
+next, looking at employment. Employed has NAs, so subset to investigate 
+```{R}
+subset3<-na.omit(cancer[,22:23])
+plot(subset3$PctEmployed16_Over, subset3$PctUnemployed16_Over, main = "Employment rate vs unemployment rate")
+cor(subset3$PctEmployed16_Over, subset3$PctUnemployed16_Over)
+```
+Not too big of correlation...keep for now, access it at VIF
+
+Let's drop all the columns we need to drop now 
+```{R}
+#modify cancer further because we already dropped the weird ages
+cancer<-cancer[,-c(2,9,11,12,13,24,27,25,30,31,32,33,35)]
+correl <- round(cor(cancer),3)
+cor_df <- as.data.frame(as.table(correl))
+#looks good , good to go to vif
+####DO NOT TOUCH NOW 
+```
+
+drop just the rows with na in PctEmployed16_over
+```{r}
+
+cancer<- cancer[!is.na(cancer$PctEmployed16_Over),]
+#sum(is.na(cancer$PctEmployed16_Over))
+#summary(cancer)
+```
+
+#### b) change target variable
+Because the units in this data set are all different, a more interesting Y variable would be death rate per incidence rate. 
+```{r}
+cancer$deathPerIncidence <- cancer$TARGET_deathRate/cancer$incidenceRate
+#summary(cancer)
+```
+now drop target death and incidence rate, avganncount, popest2015
+```{r}
+cancer<- cancer[,-c(1,2,3,5)]
+####DO NOT TOUCH
+```
+
+#### c) Likert Scale for education between 18 to 24
+For education between 18_24
+normalized PctSomeCol18_24 that encompasses other variables
+```{r}
+cancer$PctSomeCol18_24 <- 100-cancer$PctNoHS18_24-cancer$PctBachDeg18_24-cancer$PctHS18_24
+#deleted NA's
+sum(is.na(cancer$PctSomeCol18_24))
+head(cancer$PctSomeCol18_24)
+```
+Use a weighted average to convert the four columns into one.
+```{r}
+cancer$edScore <- .01*cancer$PctNoHS18_24+.02*cancer$PctHS18_24+.03*cancer$PctSomeCol18_24+.04*cancer$PctBachDeg18_24
+#head(cancer$edScore)
+```
+drop 18_24 educations:"PctNoHS18_24","PctHS18_24","PctSomeCol18_24","PctBachDeg18_24" now in edScore
+```{r}
+#summary(cancer)
+cancer<-cancer[,-c(7,8,9,10)]
+```
+********************************************************
+### 2) Access multicolinearity
+Now we have our first linear model post cleaning, pre VIF
+*note that povertyPercent and PctBachDeg25_Over are most significant regressors
+```{r}
+cancerFULL<-lm(cancer$deathPerIncidence~., data=cancer)
+summary(cancerFULL)
+```
+VIF accessment, accessing multicolinearity in cleaned data
+```{r}
+library("car")
+library("carData")
+vif_values =vif(cancerFULL)
+vif_values
+par(mar = c(5.5, 5.5, 2, 2))
+barplot(vif_values, main = "VIF Values", horiz = TRUE, col = "steelblue", ,cex.axis=0.4, cex.names = 0.4, las=1,xlim = c(0,10))
+abline(v = 10, lwd = 2, lty = 2)
+```
+
+### Try model with just the hypothesized variables
+```{r}
+hypfit<- lm(cancer$deathPerIncidence~cancer$PctWhite+cancer$PctPublicCoverageAlone+cancer$PctEmployed16_Over+cancer$PctUnemployed16_Over)
+summary(hypfit)
+```
+
+
+### LASSO
+```{r}
+
+library(glmnet)
+library(Matrix)
+a = data.matrix(cancer[, -15])  
+b = cancer[, 15]
+ 
+cv_model = cv.glmnet(a, b, alpha = 1,type.measure = "mse" )
+(min_lambda = cv_model$lambda.min) #value of minimum lambda
+(lambda_1se = cv_model$lambda.1se) #value of lambda 1 SD away
+plot(cv_model) 
+```
+```{r}
+#looking at lasso with min lambda
+lasso1 = glmnet(a, b, lambda = min_lambda, alpha = 1, family = 'gaussian')
+coef(lasso1) 
+```
+```{r}
+#looking at lasso with lambda 1 se away from min lambda
+lasso2 = glmnet(a, b, lambda = lambda_1se, alpha = 1, family = 'gaussian')
+coef(lasso2) 
+```
+So many variables driven to 0 in only 1 SD likely points to them not in optimal model
+
+```{r}
+#lasso model min lambda
+lm.lasso1<-lm(deathPerIncidence~. -PercentMarried- PctUnemployed16_Over- PctWhite, data=cancer)
+summary(lm.lasso1)
+```
+
+What if we take out the insignificant variables?
+```{r}
+lm.lasso1_red<-lm(deathPerIncidence~. -PercentMarried- medIncome- PctUnemployed16_Over-studyPerCap- PctWhite-PctEmpPrivCoverage-PctPublicCoverageAlone, data=cancer)
+summary(lm.lasso1_red)
+```
+Now MedianAge is insignificant, and the R-squared values have slightly decreased.
+
+Let's look at lasso model for 1 standard deviation away.
+```{r}
+lm.lasso2<-lm(deathPerIncidence~povertyPercent+PctBachDeg25_Over+PctEmployed16_Over+ PctPublicCoverageAlone, data=cancer)
+summary(lm.lasso2)
+```
+PctPublicCoverageAlone is not significant. The R-squared values are lower than the minimum lambda model. However, it's not too different and the values are still around 2.6.
+
+### AIC & BIC
+
+AIC forward selection.
+```{r}
+#na.exclude(cancer)
+library(MASS)
+library(leaps)
+library(bestglm)
+
+model2 = lm(cancer$deathPerIncidence~.,data=cancer)
+model.empty = lm(cancer$deathPerIncidence~1,data= cancer)  
+model.step.aic1 = stepAIC(model.empty,direction = "forward", scope = list(lower = model.empty, upper = model2),trace=0) 
+#summary(model.step.aic1) 
+```
+This model turns out to be the same as the backwards selection, likely because they're both using AIC as the criteria. We'll take a closer look at this model in the following section.
+
+AIC Backwards selection
+```{r}
+model.step.aic=stepAIC(model2,trace=0) 
+summary(model.step.aic)
+layout(matrix(1:4, ncol=2)) 
+plot(model.step.aic)
+#load ggplot2
+library(ggplot2)
+```
+
+BIC Model
+```{r}
+model.step.bic <- step(model.empty,direction = "forward",k=log(nrow(cancer)),
+                       scope = list(lower = model.empty, upper = model2),trace=0) 
+summary(model.step.bic)
+layout(matrix(1:4, ncol=2)) 
+plot(model.step.bic)
+layout(1)
+#histogram of residuals
+ggplot(data = cancer, aes(x = model.step.bic$residuals)) +
+    geom_histogram(bins=30, fill = 'steelblue', color = 'black') +
+    labs(title = 'Histogram of Residuals', x = 'Residuals', y = 'Frequency')
+
+
+#model.step.bic2 <- step(model2,direction = "backward",k=log(nrow(cancer)),trace=0) 
+#BICsummary
+#summary(model.step.bic2)
+#layout(matrix(1:4, ncol=2)) 
+#plot(model.step.bic)
+#layout(1)
+
+#model.bestglm.aic = bestglm(cancer,IC = 'AIC')
+#model.bestglm.aic$BestModels
+
+
+
+```
+
+### Box-Cox
+Conduct a Box-Cox transformation on the response data. NOTE 0 is not within the confidence interval for boxplot so log transformation cant be done 
+```{r}
+library("MASS")
+# Box-Cox transformed model based on AIC backward selection
+old.lm<-lm(deathPerIncidence~povertyPercent + PctBachDeg25_Over +edScore, data=cancer)
+summary(old.lm)
+bc<-boxcox(lm(deathPerIncidence~povertyPercent + PctBachDeg25_Over +edScore, data=cancer))
+#Note that the center dashed vertical line represents the estimated parameter lambda, we also see the dashed lines beside lambda which represent confidence interval, note that 0 is outside the confidence interval 
+lambda <- bc$x[which.max(bc$y)]
+sprintf("the optimal lambda was found to be %.4f",lambda)
+new_model <- lm(((deathPerIncidence^lambda-1)/lambda)~povertyPercent + PctBachDeg25_Over +edScore, data=cancer)
+#old
+layout(matrix(1:4, ncol=2)) 
+plot(old.lm)
+layout(1)
+summary(old.lm)
+#new
+layout(matrix(1:4, ncol=2)) 
+plot(new_model)
+layout(1)
+summary(new_model)
+
+```
+
+```{r}
+#running boxcox for lasso, same thing not as good r-squared 
+library("MASS")
+# Box-Cox transformed model
+old.lm<-lm(deathPerIncidence~povertyPercent+PctBachDeg25_Over+PctEmployed16_Over+ PctPublicCoverageAlone, data=cancer)
+bc<-boxcox(lm(deathPerIncidence~povertyPercent+PctBachDeg25_Over+PctEmployed16_Over+ PctPublicCoverageAlone, data=cancer))
+#Note that the center dashed vertical line represents the estimated parameter lambda, we also see the dashed lines beside lambda which represent confidence interval, note that 0 is outside the confidence interval 
+lambda <- bc$x[which.max(bc$y)]
+sprintf("the optimal lambda was found to be %.4f",lambda)
+new_model <- lm((deathPerIncidence^lambda)~povertyPercent+PctBachDeg25_Over+PctEmployed16_Over+ PctPublicCoverageAlone, data=cancer)
+#old
+layout(matrix(1:4, ncol=2)) 
+plot(old.lm)
+layout(1)
+summary(old.lm)
+#new
+layout(matrix(1:4, ncol=2)) 
+plot(new_model)
+layout(1)
+summary(new_model)
+
+```
